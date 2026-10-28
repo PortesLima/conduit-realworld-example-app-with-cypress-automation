@@ -1,6 +1,8 @@
 const { defineConfig } = require("cypress");
 
 module.exports = defineConfig({
+  // ID do projeto no Cypress Cloud; vem da variável CYPRESS_PROJECT_ID (sem ela, o Cypress roda normalmente, só não grava)
+  projectId: process.env.CYPRESS_PROJECT_ID,
   env: {
     emailDefault: 'email@email.com',
     passwordDefault: '123456',

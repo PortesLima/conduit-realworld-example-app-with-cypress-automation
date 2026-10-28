@@ -100,10 +100,21 @@ jobs:
           echo "--- frontend.log"; tail -n 50 logs/frontend.log || true
           exit 1
 
-      # setup:users cria os usuários exigidos pelos testes e depois roda o Cypress headless
+      # Com a Record Key configurada, grava a execução no Cypress Cloud (run:e2e:cloud).
+      # Sem ela (ex.: PR vindo de fork, onde o GitHub não entrega segredos), roda igual, só sem gravar.
       - name: Rodar testes E2E
         working-directory: testAutomation
-        run: npm run run:e2e:local
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          CYPRESS_PROJECT_ID: ${{ vars.CYPRESS_PROJECT_ID }}
+        run: |
+          if [ -n "$CYPRESS_RECORD_KEY" ] && [ -n "$CYPRESS_PROJECT_ID" ]; then
+            echo "Gravando no Cypress Cloud"
+            npm run run:e2e:cloud
+          else
+            echo "Sem Record Key/Project ID: rodando sem gravar"
+            npm run run:e2e:local
+          fi
 
       # Relatório mochawesome: sempre, mesmo que os testes falhem
       - name: Enviar relatório HTML
