@@ -1,0 +1,127 @@
+name: E2E (Cypress)
+
+# Roda a suíte Cypress de testAutomation contra o app subido dentro do próprio runner
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Variáveis lidas pelo back-end (backend/config/config.js). Não existe arquivo .env na CI.
+    # Valores fictícios, só para o banco descartável deste job: não são segredos reais.
+    env:
+      PORT: 3001
+      JWT_KEY: ci_jwt_key_fake_only_for_tests
+      DEV_DB_USERNAME: postgres
+      DEV_DB_PASSWORD: ci_postgres_pw
+      DEV_DB_NAME: database_development
+      DEV_DB_HOSTNAME: 127.0.0.1
+      DEV_DB_DIALECT: postgres
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # O contexto "env" não existe em "services": repita aqui o mesmo valor de DEV_DB_PASSWORD
+          POSTGRES_PASSWORD: ci_postgres_pw
+        ports:
+          - 5432:5432
+        # O job só começa depois que o banco responde ao pg_isready
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          # Cache do npm para os dois package-lock.json (raiz e testAutomation)
+          cache-dependency-path: |
+            package-lock.json
+            testAutomation/package-lock.json
+
+      # O binário do Cypress é baixado no postinstall; este cache evita baixá-lo a cada execução
+      - name: Cache do binário do Cypress
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('testAutomation/package-lock.json') }}
+
+      - name: Instalar dependências da raiz (backend + frontend)
+        run: npm ci
+
+      - name: Instalar dependências de testAutomation
+        working-directory: testAutomation
+        run: npm ci
+
+      # Garante o binário do Cypress caso o npm bloqueie o postinstall; se já estiver no cache, não baixa de novo
+      - name: Instalar o binário do Cypress
+        working-directory: testAutomation
+        run: npx cypress install
+
+      - name: Criar banco e rodar migrations
+        run: |
+          npm run sqlz -- db:create
+          npm run sqlz -- db:migrate
+
+      # Back-end (3001) e front-end (3000) em segundo plano, com logs em arquivo
+      - name: Subir back-end e front-end
+        run: |
+          mkdir -p logs
+          nohup npm run start -w backend > logs/backend.log 2>&1 &
+          nohup npm run dev -w frontend > logs/frontend.log 2>&1 &
+
+      # Espera até 120 s (60 tentativas de 2 s) as duas portas responderem
+      - name: Aguardar o app responder
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3001/api/articles > /dev/null 2>&1 \
+              && curl -fsS http://localhost:3000 > /dev/null 2>&1; then
+              echo "App no ar após ~$((i * 2))s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App não respondeu em 120s" >&2
+          echo "--- backend.log"; tail -n 50 logs/backend.log || true
+          echo "--- frontend.log"; tail -n 50 logs/frontend.log || true
+          exit 1
+
+      # setup:users cria os usuários exigidos pelos testes e depois roda o Cypress headless
+      - name: Rodar testes E2E
+        working-directory: testAutomation
+        run: npm run run:e2e:local
+
+      # Relatório mochawesome: sempre, mesmo que os testes falhem
+      - name: Enviar relatório HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-mochawesome
+          path: testAutomation/cypress/reports/html
+          if-no-files-found: warn
+
+      # Evidências de falha: screenshots, vídeos e logs dos servidores
+      - name: Enviar evidências da falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencias-falha
+          path: |
+            testAutomation/cypress/screenshots
+            testAutomation/cypress/videos
+            logs
+          if-no-files-found: warn
