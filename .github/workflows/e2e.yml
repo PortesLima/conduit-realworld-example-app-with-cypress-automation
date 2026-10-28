@@ -15,6 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    # 2 máquinas em paralelo: o Cypress Cloud distribui os specs entre elas (--parallel).
+    # Cada máquina tem o próprio Postgres e o próprio app, então os testes não se atrapalham.
+    strategy:
+      fail-fast: false
+      matrix:
+        containers: [1, 2]
+
     # Variáveis lidas pelo back-end (backend/config/config.js). Não existe arquivo .env na CI.
     # Valores fictícios, só para o banco descartável deste job: não são segredos reais.
     env:
@@ -109,8 +116,8 @@ jobs:
           CYPRESS_PROJECT_ID: ${{ vars.CYPRESS_PROJECT_ID }}
         run: |
           if [ -n "$CYPRESS_RECORD_KEY" ] && [ -n "$CYPRESS_PROJECT_ID" ]; then
-            echo "Gravando no Cypress Cloud"
-            npm run run:e2e:cloud
+            echo "Gravando no Cypress Cloud (container ${{ matrix.containers }} de 2)"
+            npm run run:e2e:cloud -- --parallel --group "E2E paralelo"
           else
             echo "Sem Record Key/Project ID: rodando sem gravar"
             npm run run:e2e:local
@@ -121,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: relatorio-mochawesome
+          name: relatorio-mochawesome-${{ matrix.containers }}
           path: testAutomation/cypress/reports/html
           if-no-files-found: warn
 
@@ -130,7 +137,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: evidencias-falha
+          name: evidencias-falha-${{ matrix.containers }}
           path: |
             testAutomation/cypress/screenshots
             testAutomation/cypress/videos
