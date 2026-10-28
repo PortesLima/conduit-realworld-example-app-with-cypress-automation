@@ -1,3 +1,5 @@
+[![E2E (Cypress)](https://github.com/PortesLima/conduit-realworld-example-app-with-cypress-automation/actions/workflows/e2e.yml/badge.svg)](https://github.com/PortesLima/conduit-realworld-example-app-with-cypress-automation/actions/workflows/e2e.yml)
+
 > ## Automação de testes com Cypress
 >
 > - Este fork inclui uma suíte E2E com Cypress (11 testes) para o desafio da DIO, em [`testAutomation/`](testAutomation/README.md).

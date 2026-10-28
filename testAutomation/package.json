@@ -8,6 +8,7 @@
     "setup:users": "node scripts/create-test-users.js",
     "open:e2e:local": "cypress open --config-file cypress_dev.config.js",
     "run:e2e:local": "npm run setup:users && cypress run --config-file cypress_dev.config.js",
+    "run:e2e:cloud": "npm run setup:users && cypress run --config-file cypress_dev.config.js --record --tag ci,github-actions",
     "run:e2e:prod": "npx cypress run --config-file cypress_prod.config.js"
   },
   "author": "",

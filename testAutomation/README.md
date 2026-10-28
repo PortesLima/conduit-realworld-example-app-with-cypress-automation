@@ -147,7 +147,7 @@ O workflow [`.github/workflows/e2e.yml`](../.github/workflows/e2e.yml) roda em `
 5. roda `npm run run:e2e:local`;
 6. publica o relatório HTML como artefato (sempre) e, se algo falhar, screenshots, vídeos e logs dos servidores.
 
-> Este workflow foi escrito e a sintaxe do YAML foi validada localmente, mas **ainda não foi executado no GitHub**.
+> O workflow já foi executado com sucesso no GitHub Actions (aba **Actions** do repositório).
 
 ## Melhorias em relação ao original
 
@@ -166,3 +166,21 @@ O workflow [`.github/workflows/e2e.yml`](../.github/workflows/e2e.yml) roda em `
 - **Dependências antigas:** o `npm install` e o `npm ci` reportam dezenas de vulnerabilidades (45 na raiz e 23 em `testAutomation` nas instalações feitas). Não foram corrigidas.
 - **Nomes de testes preservados do original:** dois testes têm espaço no fim do nome ("Criar artigo com sucesso usando tag " e "Fazer login usando credenciais válidas "), e o teste "Criar conta para usuário não existente" é executado 3 vezes com o mesmo nome. Não foram alterados.
 - **Dados acumulados:** cada execução cria usuários e artigos novos no banco `database_development`.
+
+## Cypress Cloud (gravação das execuções)
+
+Desafio DIO "CI/CD com Cypress e GitHub Actions": o pipeline envia o resultado de cada execução (testes, vídeos, screenshots, tempos) para o [Cypress Cloud](https://cloud.cypress.io).
+
+**Como funciona**
+
+- `projectId` nos arquivos `cypress_*.config.js` lê a variável `CYPRESS_PROJECT_ID`.
+- O script `npm run run:e2e:cloud` roda o mesmo que `run:e2e:local`, mais `--record` e `--tag ci,github-actions`.
+- No workflow, a etapa "Rodar testes E2E" usa `run:e2e:cloud` se `CYPRESS_RECORD_KEY` e `CYPRESS_PROJECT_ID` existirem; senão, usa `run:e2e:local` e o pipeline não quebra.
+
+**Como configurar no seu fork**
+
+1. Crie um projeto no Cypress Cloud e copie o **Project ID** e a **Record Key**.
+2. No GitHub: *Settings → Secrets and variables → Actions*.
+   - aba **Secrets** → `CYPRESS_RECORD_KEY` = sua Record Key (segredo; nunca versionar);
+   - aba **Variables** → `CYPRESS_PROJECT_ID` = seu Project ID (não é segredo).
+3. Faça um push ou rode o workflow manualmente (*Run workflow*). A execução aparece no painel do Cypress Cloud.
