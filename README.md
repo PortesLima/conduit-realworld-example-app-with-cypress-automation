@@ -1,3 +1,11 @@
+> ## Automação de testes com Cypress
+>
+> - Este fork inclui uma suíte E2E com Cypress (11 testes) para o desafio da DIO, em [`testAutomation/`](testAutomation/README.md).
+> - Com o app rodando (`npm run dev`), execute `npm run run:e2e:local` dentro de `testAutomation`.
+> - Passo a passo, tecnologias, CI e pontos de atenção: [testAutomation/README.md](testAutomation/README.md).
+
+---
+
 # ![RealWorld Example App](logo.png)
 
 > **React / Vite + SWC / Express.js / Sequelize / PostgreSQL codebase containing real world examples (CRUD, auth, advanced patterns, etc) that adheres to the [RealWorld](https://realworld.io/) spec and API.**
