@@ -184,3 +184,22 @@ Desafio DIO "CI/CD com Cypress e GitHub Actions": o pipeline envia o resultado d
    - aba **Secrets** → `CYPRESS_RECORD_KEY` = sua Record Key (segredo; nunca versionar);
    - aba **Variables** → `CYPRESS_PROJECT_ID` = seu Project ID (não é segredo).
 3. Faça um push ou rode o workflow manualmente (*Run workflow*). A execução aparece no painel do Cypress Cloud.
+
+### Execução em paralelo
+
+O job usa `strategy.matrix` com 2 containers e o comando `npm run run:e2e:cloud -- --parallel --group "E2E paralelo"`. O Cypress Cloud recebe os specs de todas as máquinas e os distribui para que terminem mais rápido (sugestão da própria análise de paralelização do Cloud). Cada máquina sobe seu próprio PostgreSQL e app, e os artefatos têm o número do container no nome. Sem Record Key, o paralelismo não é usado e cada máquina roda a suíte completa sem gravar.
+
+## Reflexões do desafio
+
+**1. Até que ponto devemos aprender sobre configuração de pipelines como QAs?**
+O suficiente para não depender de outra pessoa para colocar os testes no fluxo: ler e editar um workflow YAML, entender gatilhos (push, pull request, agendamento), variáveis e segredos, cache, artefatos e como diagnosticar uma falha a partir do log. Montar toda a infraestrutura (runners, deploy, ambientes) costuma ser papel de DevOps, mas o QA precisa saber pedir, revisar e depurar. Aprender a pipeline também ajuda a achar causas fora do teste, como banco fora do ar, porta ocupada ou dependência errada.
+
+**2. Qual recurso do Cypress Cloud achei mais interessante?**
+A visão de cada execução com resultado por teste, vídeo e screenshot reunidos, ligada ao commit e ao autor, além das tags e da análise de testes lentos, instáveis e das falhas mais frequentes. Também chama atenção a sugestão de paralelização, que estimou o ganho de tempo por execução. Isso transforma o resultado do CI em dado para decidir o que melhorar na suíte.
+
+**3. Outras ferramentas com integração a pipelines de teste**
+- **Playwright:** concorrente direto do Cypress, com paralelismo e sharding nativos, relatórios HTML e traces de depuração, e execução em Chromium, Firefox e WebKit.
+- **Selenium (com Selenium Grid):** padrão mais antigo, suporta várias linguagens e navegadores e roda em qualquer CI, mas exige mais configuração.
+- **Jenkins, GitLab CI, CircleCI e Azure DevOps Pipelines:** outras plataformas de CI/CD que executam os mesmos testes, cada uma com seu formato de configuração.
+- **Allure Report e ReportPortal:** ferramentas de relatório que se integram a vários frameworks e CIs, com histórico e tendências.
+- **BrowserStack e Sauce Labs:** executam os testes em nuvem, em muitos navegadores e dispositivos reais.
